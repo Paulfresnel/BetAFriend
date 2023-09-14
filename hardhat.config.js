@@ -1,13 +1,28 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("dotenv");
+require("dotenv").config();
+
 console.log(process.env.ALCHEMY_URL);
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
-  solidity: "0.8.19",
-  networks:{
-    mumbai:{
-      url: process.env.ALCHEMY_URL,
+  defaultNetwork: "polygon_mumbai",
+  networks: {
+    hardhat: {
     },
-    hardhat:{},
-  }
+    polygon_mumbai: {
+      url: process.env.ALCHEMY_URL,
+      accounts: [process.env.PRIVATE_KEY]
+    }
+  },
+  etherscan: {
+    apiKey: process.env.ALCHEMY_URL
+  },
+  solidity: {
+    version: "0.8.9",
+    settings: {
+      optimizer: {
+        enabled: true,
+        runs: 200
+      }
+    }
+  },
 };

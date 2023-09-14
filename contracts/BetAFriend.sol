@@ -28,19 +28,19 @@ contract BetAFriend is ERC20 {
 
 
     constructor(uint256 initialSupply) ERC20("BetAFriend", "BAF") {
-        maxBonusTokens = 0.15 * initialSupply;
+        maxBonusTokens = initialSupply/10;
         _mint(msg.sender, initialSupply);
         deployer = msg.sender;
     }
 
-    function checkBet(uint _betReference) external public returns (string, bool){
-        require((systemBets[msg.sender][_betReference].player1 == msg.sender || systemBets[msg.sender][_betReference].player2 == msg.sender ), "You're not a player from this bet")
+    function checkBet(uint _betReference) public returns (string memory, bool){
+        require((systemBets[msg.sender][_betReference].player1 == msg.sender || systemBets[msg.sender][_betReference].player2 == msg.sender ), "You're not a player from this bet");
         if(systemBets[msg.sender][_betReference].winner != msg.sender){
-            emit betResolved(_betReference, msg.sender)
-            return ("Loser", false)
+            emit betResolved(_betReference, msg.sender);
+            return ("Loser", false);
         } else{
-            emit betResolved(_betReference, msg.sender)
-            return ("Winner", true)
+            emit betResolved(_betReference, msg.sender);
+            return ("Winner", true);
         }
     }
     
@@ -48,11 +48,18 @@ contract BetAFriend is ERC20 {
         require (newUsers[msg.sender] == false, "Already a user");
         newUsers[msg.sender] = true;
         require(maxBonusTokens >= 20000, "No more Bonus to claim");
-        balanceOf[owner] -= 20000;
-        balanceOf[msg.sender] += 20000;
+        transferFrom(deployer, msg.sender, 20000);
         maxBonusTokens -= 20000;
     }
 
+    function remainingBonusTokens() external onlyDeployer view returns(uint){
+        return maxBonusTokens;
+    }
+
+    modifier onlyDeployer {
+        require(msg.sender == deployer, "Not authorized");
+        _;
+    }
 
     
 
