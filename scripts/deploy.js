@@ -9,6 +9,7 @@ const hre = require("hardhat");
 async function main() {
 
   const initialSupply = 1000000000;
+  
 
   const codexDAO = await hre.ethers.deployContract("codexDAOGovernance", [initialSupply]);
 

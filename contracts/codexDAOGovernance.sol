@@ -16,8 +16,11 @@ contract codexDAOGovernance is ERC20 {
         uint totalAgainstVoteAmount;
         bool finished;
         uint creationDate;
+        uint proposalId;
+        address[] voters;
     }
 
+    mapping (address => uint) public tokensLockedInProposals;
     mapping (address => mapping (uint => uint)) public proposalsVoteWeight;
     mapping(address => bool) public hasClaimed;
     mapping(uint => Proposal) public publicProposals;
@@ -50,6 +53,8 @@ contract codexDAOGovernance is ERC20 {
     }
 
     function substractAmount(address _userBalance, uint _amountToDeduct) public view returns(uint) {
+        _approve(msg.sender, address(this), _amountToDeduct);
+        transfer(address(this), _amountToDeduct);
         uint userBalance = balanceOf(_userBalance);
         userBalance -= _amountToDeduct;
         return userBalance;
@@ -68,19 +73,24 @@ contract codexDAOGovernance is ERC20 {
             substractAmount(msg.sender, voteAmount);
             publicProposals[_proposalId].totalAgainstVoteAmount += voteAmount;
         }
+        publicProposals[_proposalId].voters.push(msg.sender);
         proposalsVoteWeight[msg.sender][_proposalId] += voteAmount;
         emit newVote(msg.sender, _proposalId, block.timestamp);
     }
 
     function createProposal(string memory title, uint _initialVote) public onlyHolders {
         require (_initialVote >= 150, "Minimum 150 Tokens to initiate a new proposal");
+        require(title.length > 4, "Title is too short");
         require(addressBalance(msg.sender) >= _initialVote, "You do not have enough funds");
-        
+        _approve(msg.sender, address(this), _initialVote);
+        transfer(address(this), _initialVote);
         Proposal memory proposal = publicProposals[proposalId];
         proposal.title = title;
         proposal.totalForVoteAmount = _initialVote;
         proposal.creator = msg.sender;
         proposal.creationDate = block.timestamp;
+        proposal.proposalId = proposalId;
+        proposal.voters.push(msg.sender); 
         emit newProposal(msg.sender, proposalId, block.timestamp);
         proposalId += 1;
     }
