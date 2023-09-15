@@ -30,7 +30,7 @@ contract codexDAOGovernance is ERC20 {
     event freeTokenClaim(address indexed claimer, uint timestamp);
     event claimedProposalStake(address indexed claimer, uint indexed _proposalId);
 
-k  
+
 
     constructor(uint _initialSupply) ERC20("codexDAOToke,", "CDT"){
         _mint(msg.sender, _initialSupply);
