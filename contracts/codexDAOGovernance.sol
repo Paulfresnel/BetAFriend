@@ -71,7 +71,7 @@ contract codexDAOGovernance is ERC20 {
     // Allows users to cast a FOR or AGAINST vote on an existing and ongoing proposal
 
 
-    function castVote(uint _proposalId, uint voteAmount, bool voteIntention) proposalIsActive(uint _proposalId) public onlyHolders {
+    function castVote(uint _proposalId, uint voteAmount, bool voteIntention) public onlyHolders {
         Proposal memory proposal = publicProposals[_proposalId];
         require(block.timestamp <= proposal.creationDate + 1 week, "Proposal is finished");
         require(addressBalance(msg.sender) >= voteAmount, "You do not have enough funds");
