@@ -8,6 +8,7 @@ contract codexDAOGovernance is ERC20 {
 
     address public owner;
     uint public proposalId = 0;
+    uint public totalUsers = 0;
 
     struct Proposal {
         string title;
@@ -20,16 +21,16 @@ contract codexDAOGovernance is ERC20 {
     }
 
     // Mapping to store the total Tokens count locked on the different proposals.
-    mapping (address user => mapping (uint _proposalId => uint)) public proposalsVoteWeight;
+    mapping (address  => mapping (uint => uint)) public proposalsVoteWeight;
 
     // Mapping to check if user already claimed their free bonus tokens.
-    mapping(address user => bool) public hasClaimed;
+    mapping(address => bool) public hasClaimed;
 
     // Mapping to store all proposals created, indexed by proposalId.
-    mapping(uint _proposalId => Proposal) public publicProposals;
+    mapping(uint  => Proposal) public publicProposals;
 
     // Mapping to store the tokens each user locks into the different proposals.
-    mapping (uint _proposalId => mapping (address user => uint)) public userTokensLockedInProposal;
+    mapping (uint  => mapping (address => uint)) public userTokensLockedInProposal;
 
 
     event newProposal(address indexed creator, uint indexed proposalId, uint creationDate);
@@ -42,6 +43,7 @@ contract codexDAOGovernance is ERC20 {
     constructor(uint _initialSupply) ERC20("codexDAOToke,", "CDT"){
         _mint(msg.sender, _initialSupply);
         owner = msg.sender;
+        totalUsers += 1;
     }
 
     // Allows new users to claim 10,000 Free tokens - only allowed once per address
@@ -54,6 +56,7 @@ contract codexDAOGovernance is ERC20 {
         uint senderBalance = balanceOf(msg.sender);
         senderBalance += 10000;
         hasClaimed[msg.sender] = true;
+        totalUsers += 1;
         emit freeTokenClaim(msg.sender, block.timestamp);
     }
 
@@ -64,13 +67,19 @@ contract codexDAOGovernance is ERC20 {
         return userBalance;
     }
 
+    // Returns all the holders of Token
+
+    function getTotalHolders() public view returns(uint) {
+        return totalUsers;
+    }
+
     // Deducts an amount of tokens from a user to be locked on a proposals' Vault.
 
-    function substractAmount(uint _proposalId, address _userBalance, uint _amountToDeduct) public returns(uint) {
+    function substractAmount(uint _proposalId, address _userAddress, uint _amountToDeduct) public returns(uint) {
         _approve(msg.sender, address(this), _amountToDeduct);
         transfer(address(this), _amountToDeduct);
         userTokensLockedInProposal[_proposalId][msg.sender] += _amountToDeduct;
-        uint userBalance = balanceOf(_userBalance);
+        uint userBalance = balanceOf(_userAddress);
         userBalance -= _amountToDeduct;
         return userBalance;
     }
@@ -99,7 +108,7 @@ contract codexDAOGovernance is ERC20 {
     // Allows users to create their own proposal if they have over 500 tokens.
     // Creator sends their initialVote tokens amount to the proposal Vault.
 
-    function createProposal(string memory title, uint _initialVote) public onlyHolders {
+    function createProposal(string memory title, uint _initialVote) public onlyHolders returns(bool) {
         require (_initialVote >= 150, "Minimum 150 Tokens to initiate a new proposal");
         require(addressBalance(msg.sender) >= _initialVote, "You do not have enough funds");
         _approve(msg.sender, address(this), _initialVote);
@@ -113,6 +122,7 @@ contract codexDAOGovernance is ERC20 {
         proposal.proposalId = proposalId;
         emit newProposal(msg.sender, proposalId, block.timestamp);
         proposalId += 1;
+        return true;
     }
 
 

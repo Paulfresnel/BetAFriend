@@ -5,8 +5,15 @@
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 // global scope, and execute the script.
 const hre = require("hardhat");
+require('dotenv').config();
 
 async function main() {
+    
+    const privateKey = process.env.PRIVATE_KEY;
+
+    const provider = ethers.getDefaultProvider(process.env.ALCHEMY_URL);
+
+    const wallet = new ethers.Wallet(privateKey, provider);
 
   const contract = await hre.ethers.getContractFactory("codexDAOGovernance");
 
@@ -18,11 +25,13 @@ async function main() {
 
   console.log("balance previous:", await codexDAO.balanceOf(signer))
 
-  await codexDAO.createProposal("1rst CodexDAO Footprint", 500);
+  await codexDAO.connect(wallet).createProposal("1rst CodexDAO Footprint", 500);
+  
+  console.log("proposal created");
 
   console.log("balance after:", await codexDAO.balanceOf(signer));
 
-  codexDAO.on("newProposal", async (creator, proposalId) =>{
+  codexDAO.on("newProposal", async (creator, proposalId) => {
     console.log("new proposal detected");
     await console.log("Creator:"+ creator);
     await console.log("Proposal Id:"+ proposalId);
