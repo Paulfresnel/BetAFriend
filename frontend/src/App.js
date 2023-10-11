@@ -17,7 +17,7 @@ function App() {
       <WalletConnect userAccount={userAccount} setUserAccount={setUserAccount} />
       <p>here</p>
       <Routes>
-        <Route path={"/proposals"} element={<CreateProposal/>}/>
+        <Route path={"/proposals"} element={<CreateProposal userAccount={userAccount} setUserAccount={setUserAccount}/>}/>
         <Route path={"/"} element={<HomePage/>}/>
       </Routes>
     </div>

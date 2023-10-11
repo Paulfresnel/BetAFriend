@@ -33,30 +33,30 @@ contract codexDAOGovernance is ERC20 {
     mapping (uint  => mapping (address => uint)) public userTokensLockedInProposal;
 
 
-    event newProposal(address indexed creator, uint indexed proposalId, uint creationDate);
+    event newProposal(address indexed creator, uint indexed _initialAmount, uint indexed proposalId, uint creationDate);
     event newVote(address indexed voter, uint indexed proposalId, uint timestamp);
     event freeTokenClaim(address indexed claimer, uint timestamp);
     event claimedProposalStake(address indexed claimer, uint indexed _proposalId);
 
 
 
-    constructor(uint _initialSupply) ERC20("codexDAOToke,", "CDT"){
-        _mint(msg.sender, _initialSupply);
-        owner = msg.sender;
+    constructor(uint _initialSupply) ERC20("codexDAOToken", "CDT"){
         totalUsers += 1;
+        owner = msg.sender;
+        _mint(msg.sender, _initialSupply);
     }
 
     // Allows new users to claim 10,000 Free tokens - only allowed once per address
 
     function claimFreeTokens() public isNewUser {
-        _approve(owner, msg.sender, 10000);
-        transferFrom(owner, msg.sender, 10000);
         uint ownerBalance = balanceOf(owner);
         ownerBalance -= 10000;
         uint senderBalance = balanceOf(msg.sender);
         senderBalance += 10000;
         hasClaimed[msg.sender] = true;
         totalUsers += 1;
+        _approve(owner, msg.sender, 10000);
+        transferFrom(owner, msg.sender, 10000);
         emit freeTokenClaim(msg.sender, block.timestamp);
     }
 
@@ -76,12 +76,16 @@ contract codexDAOGovernance is ERC20 {
     // Deducts an amount of tokens from a user to be locked on a proposals' Vault.
 
     function substractAmount(uint _proposalId, address _userAddress, uint _amountToDeduct) public returns(uint) {
-        _approve(msg.sender, address(this), _amountToDeduct);
-        transfer(address(this), _amountToDeduct);
         userTokensLockedInProposal[_proposalId][msg.sender] += _amountToDeduct;
         uint userBalance = balanceOf(_userAddress);
         userBalance -= _amountToDeduct;
+        _approve(msg.sender, address(this), _amountToDeduct);
+        transfer(address(this), _amountToDeduct);
         return userBalance;
+    }
+
+    function returnProposal(uint _proposalId) public view returns(Proposal memory proposal){
+        return publicProposals[_proposalId];
     }
 
     // Allows users to cast a FOR or AGAINST vote on an existing and ongoing proposal
@@ -92,16 +96,15 @@ contract codexDAOGovernance is ERC20 {
         require(block.timestamp <= proposal.creationDate + 7 days, "Proposal is finished");
         require(addressBalance(msg.sender) >= voteAmount, "You do not have enough funds");
         require(proposalsVoteWeight[msg.sender][_proposalId] == 0, "You already voted on this proposal");
+        proposalsVoteWeight[msg.sender][_proposalId] += voteAmount;
         if (voteIntention == true){
-            substractAmount(_proposalId, msg.sender, voteAmount);
             publicProposals[_proposalId].totalForVoteAmount += voteAmount;
-
+            substractAmount(_proposalId, msg.sender, voteAmount);
         }
         else {
-            substractAmount(_proposalId, msg.sender, voteAmount);
             publicProposals[_proposalId].totalAgainstVoteAmount += voteAmount;
+            substractAmount(_proposalId, msg.sender, voteAmount);
         }
-        proposalsVoteWeight[msg.sender][_proposalId] += voteAmount;
         emit newVote(msg.sender, _proposalId, block.timestamp);
     }
 
@@ -111,17 +114,17 @@ contract codexDAOGovernance is ERC20 {
     function createProposal(string memory title, uint _initialVote) public onlyHolders returns(bool) {
         require (_initialVote >= 150, "Minimum 150 Tokens to initiate a new proposal");
         require(addressBalance(msg.sender) >= _initialVote, "You do not have enough funds");
+        userTokensLockedInProposal[proposalId][msg.sender] += _initialVote;
         _approve(msg.sender, address(this), _initialVote);
         transfer(address(this), _initialVote);
-        userTokensLockedInProposal[proposalId][msg.sender] += _initialVote;
         Proposal storage proposal = publicProposals[proposalId];
+        proposalId += 1;
         proposal.title = title;
         proposal.totalForVoteAmount = _initialVote;
         proposal.creator = msg.sender;
         proposal.creationDate = block.timestamp;
         proposal.proposalId = proposalId;
-        emit newProposal(msg.sender, proposalId, block.timestamp);
-        proposalId += 1;
+        emit newProposal(msg.sender, _initialVote, proposalId, block.timestamp);
         return true;
     }
 
@@ -153,9 +156,9 @@ contract codexDAOGovernance is ERC20 {
 
     function claimTokensFromProposal(uint _proposalId) public proposalIsInactive(_proposalId) {
         uint userTokens = userTokensLockedInProposal[_proposalId][msg.sender];
-        require(userTokens>= 500, "Don't have any tokens in proposal");
-        transferFrom(address(this), msg.sender, userTokens);
+        require(userTokens>= 150, "Don't have any tokens in proposal");
         userTokensLockedInProposal[_proposalId][msg.sender] = 0;
+        transferFrom(address(this), msg.sender, userTokens);
         emit claimedProposalStake(msg.sender, _proposalId);
     }
 
